@@ -1,0 +1,8 @@
+.env
+__pycache__/
+node_modules/
+dist/
+*.pyc
+*.xlsx
+test_upload.py
+broken_financial_statement.xlsx

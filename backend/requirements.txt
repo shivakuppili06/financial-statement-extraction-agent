@@ -1,0 +1,7 @@
+flask
+flask-cors
+pdfplumber
+openpyxl
+pandas
+google-generativeai
+python-dotenv
