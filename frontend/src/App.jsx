@@ -1,13 +1,41 @@
 import { useState, useRef } from "react";
 
-const API_URL = "http://localhost:5000/api/analyze";
+const API_BASE = "http://127.0.0.1:5000";
 
 export default function App() {
   const [file, setFile] = useState(null);
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [jobStatus, setJobStatus] = useState("");
   const fileInputRef = useRef(null);
+
+  async function pollJobStatus(jobId) {
+    const startTime = Date.now();
+    while (Date.now() - startTime < 60000) {
+      try {
+        const res = await fetch(`${API_BASE}/api/jobs/${jobId}`);
+        const data = await res.json();
+        if (data.status === "completed") {
+          setResult(data.result);
+          setJobStatus("Extraction & Audit Completed!");
+          setLoading(false);
+          return;
+        } else if (data.status === "failed") {
+          setError(data.error || "Job processing failed");
+          setLoading(false);
+          return;
+        } else {
+          setJobStatus(`Background Processing... (${data.status})`);
+        }
+      } catch (e) {
+        console.error("Polling error:", e);
+      }
+      await new Promise((r) => setTimeout(r, 1000));
+    }
+    setError("Job polling timed out.");
+    setLoading(false);
+  }
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -16,18 +44,26 @@ export default function App() {
     setLoading(true);
     setError(null);
     setResult(null);
+    setJobStatus("Submitting document to async queue...");
 
     const formData = new FormData();
     formData.append("file", file);
 
     try {
-      const res = await fetch(API_URL, { method: "POST", body: formData });
+      const res = await fetch(`${API_BASE}/api/jobs`, { method: "POST", body: formData });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Extraction request failed");
-      setResult(data);
+      if (!res.ok) throw new Error(data.error || "Submission failed");
+
+      if (data.cached && data.extraction) {
+        setResult({ extraction: data.extraction, flags: data.flags });
+        setJobStatus("Loaded instant SHA-256 cached result ⚡");
+        setLoading(false);
+      } else if (data.job_id) {
+        setJobStatus(`Job ${data.job_id.substring(0, 8)}... queued`);
+        await pollJobStatus(data.job_id);
+      }
     } catch (err) {
       setError(err.message);
-    } finally {
       setLoading(false);
     }
   }
@@ -81,27 +117,30 @@ export default function App() {
             accept=".pdf,.xlsx,.xlsm"
             onChange={(e) => setFile(e.target.files[0])}
           />
-          <div
-            className="dropzone"
-            onClick={() => fileInputRef.current?.click()}
-          >
+          <div className="dropzone" onClick={() => fileInputRef.current?.click()}>
             <div className="dropzone-icon">📄</div>
             {file ? (
               <div className="file-info">
                 <span>Selected:</span> {file.name}
               </div>
             ) : (
-              <>
-                <div className="dropzone-text">Click to browse or drop your file here</div>
+              <div>
+                <div className="dropzone-text">Click to browse or drop your financial statement here</div>
                 <div className="dropzone-hint">Supports PDF balance sheets, P&L extracts, or Excel financial statement sheets</div>
-              </>
+              </div>
             )}
           </div>
 
           <button type="submit" className="btn-primary" disabled={!file || loading}>
-            {loading ? "Extracting & Auditing Statements..." : "Analyze Financial Document"}
+            {loading ? "Processing Document..." : "Analyze Financial Document"}
           </button>
         </form>
+
+        {loading && jobStatus && (
+          <div className="job-status-banner">
+            ⏳ {jobStatus}
+          </div>
+        )}
 
         {error && (
           <p style={{ color: "var(--danger-text)", marginTop: 16, fontSize: 14, textAlign: "center" }}>
@@ -112,12 +151,11 @@ export default function App() {
 
       {result && (
         <div className="results-grid">
-          {/* Header Card with Confidence Badge */}
           <div className="card">
             <div className="card-header">
               <div>
                 <span className="card-title">Statement Period:</span>
-                <span className="period-tag">{result.extraction.period_label || "FY/Quarter"}</span>
+                <span className="period-tag">{result.extraction?.period_label || "FY/Quarter"}</span>
               </div>
               {confidenceBadge && (
                 <div className={`confidence-badge ${confidenceBadge.class}`}>
@@ -136,7 +174,7 @@ export default function App() {
                 </tr>
               </thead>
               <tbody>
-                {Object.entries(result.extraction.line_items).map(([key, item]) => {
+                {result.extraction?.line_items && Object.entries(result.extraction.line_items).map(([key, item]) => {
                   const isFlagged = flaggedFields.has(key);
                   const formattedValue =
                     item.value !== null && item.value !== undefined
@@ -174,24 +212,21 @@ export default function App() {
             </table>
           </div>
 
-          {/* Guardrail Audit Flags Section */}
           <div className="card">
             <div className="card-header">
-              <span className="card-title">Sanity & Guardrail Audit Flags ({result.flags.length})</span>
+              <span className="card-title">Sanity & Guardrail Audit Flags ({result.flags?.length || 0})</span>
             </div>
 
-            {result.flags.length === 0 ? (
+            {result.flags?.length === 0 ? (
               <p style={{ color: "var(--success-text)", fontSize: 14, fontWeight: 600 }}>
                 ✅ All mathematical & sanity guardrails passed cleanly.
               </p>
             ) : (
               <div className="flag-list">
-                {result.flags.map((f, i) => (
+                {result.flags?.map((f, i) => (
                   <div
                     key={i}
-                    className={`flag-item ${
-                      f.severity === "high" ? "flag-high" : "flag-medium"
-                    }`}
+                    className={`flag-item ${f.severity === "high" ? "flag-high" : "flag-medium"}`}
                   >
                     <span className="severity-pill">{f.severity}</span>
                     <div>{f.message}</div>

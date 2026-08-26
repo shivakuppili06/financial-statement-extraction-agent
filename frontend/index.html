@@ -1,15 +1,380 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>FinExtract AI - Financial Statement Extraction & Audit Agent</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
-  </body>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FinExtract AI - Financial Statement Extraction & Audit Agent</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+  
+  <!-- React 18 Production Build (No Babel Required) -->
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap');
+
+    :root {
+      --bg-main: #0b0f17;
+      --bg-card: #131b2e;
+      --bg-input: #1c2640;
+      --border-color: #273554;
+      --text-main: #f1f5f9;
+      --text-muted: #94a3b8;
+      --accent-blue: #38bdf8;
+      --accent-gradient: linear-gradient(135deg, #38bdf8 0%, #6366f1 100%);
+      --success-bg: rgba(16, 185, 129, 0.15);
+      --success-text: #10b981;
+      --warning-bg: rgba(245, 158, 11, 0.15);
+      --warning-text: #f59e0b;
+      --danger-bg: rgba(239, 68, 68, 0.15);
+      --danger-text: #ef4444;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background-color: var(--bg-main);
+      color: var(--text-main);
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      min-height: 100vh;
+      padding: 48px 20px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .container { max-width: 920px; margin: 0 auto; }
+    .header { text-align: center; margin-bottom: 36px; }
+
+    .badge-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      border-radius: 100px;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      margin-bottom: 16px;
+      background: rgba(56, 189, 248, 0.1);
+      color: var(--accent-blue);
+      border: 1px solid rgba(56, 189, 248, 0.25);
+    }
+
+    .title {
+      font-size: 36px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      background: var(--accent-gradient);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 12px;
+    }
+
+    .subtitle {
+      color: var(--text-muted);
+      font-size: 15px;
+      max-width: 580px;
+      margin: 0 auto;
+      line-height: 1.6;
+      font-weight: 400;
+    }
+
+    .dropzone {
+      border: 2px dashed var(--border-color);
+      background: var(--bg-card);
+      border-radius: 16px;
+      padding: 40px 24px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s ease-in-out;
+    }
+
+    .dropzone:hover {
+      border-color: var(--accent-blue);
+      background: var(--bg-input);
+      transform: translateY(-2px);
+    }
+
+    .dropzone-icon { font-size: 36px; margin-bottom: 12px; }
+    .dropzone-text { font-size: 15px; font-weight: 600; color: var(--text-main); margin-bottom: 6px; }
+    .dropzone-hint { font-size: 13px; color: var(--text-muted); }
+
+    .file-info {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--bg-input);
+      padding: 8px 16px;
+      border-radius: 10px;
+      border: 1px solid var(--border-color);
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--accent-blue);
+    }
+
+    .hidden-input { display: none; }
+
+    .btn-primary {
+      background: var(--accent-gradient);
+      color: #ffffff;
+      border: none;
+      padding: 14px 32px;
+      border-radius: 12px;
+      font-weight: 700;
+      font-size: 15px;
+      font-family: inherit;
+      cursor: pointer;
+      box-shadow: 0 4px 20px rgba(56, 189, 248, 0.3);
+      transition: all 0.2s ease;
+      margin-top: 20px;
+      width: 100%;
+    }
+
+    .btn-primary:hover:not(:disabled) { opacity: 0.92; transform: translateY(-1px); }
+    .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; box-shadow: none; }
+
+    .job-status-banner {
+      margin-top: 16px;
+      padding: 12px 18px;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 600;
+      text-align: center;
+      background: rgba(56, 189, 248, 0.12);
+      color: var(--accent-blue);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+    }
+
+    .results-grid { margin-top: 36px; display: flex; flex-direction: column; gap: 24px; }
+    .card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 16px; padding: 28px; box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35); }
+    .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; border-bottom: 1px solid var(--border-color); padding-bottom: 16px; }
+    .card-title { font-size: 19px; font-weight: 700; color: var(--text-main); }
+    .period-tag { background: rgba(99, 102, 241, 0.2); color: #a5b4fc; padding: 4px 12px; border-radius: 8px; font-size: 13px; font-weight: 600; margin-left: 8px; }
+
+    .confidence-badge { display: inline-flex; align-items: center; gap: 8px; padding: 8px 16px; border-radius: 10px; font-weight: 700; font-size: 13px; }
+    .confidence-green { background: var(--success-bg); color: var(--success-text); border: 1px solid rgba(16, 185, 129, 0.4); }
+    .confidence-yellow { background: var(--warning-bg); color: var(--warning-text); border: 1px solid rgba(245, 158, 11, 0.4); }
+    .confidence-red { background: var(--danger-bg); color: var(--danger-text); border: 1px solid rgba(239, 68, 68, 0.4); }
+
+    .data-table { width: 100%; border-collapse: collapse; text-align: left; }
+    .data-table th { padding: 14px 16px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; font-size: 11px; letter-spacing: 0.8px; border-bottom: 1px solid var(--border-color); }
+    .data-table td { padding: 16px; border-bottom: 1px solid rgba(255, 255, 255, 0.04); font-size: 14px; }
+    .row-flagged { background: rgba(239, 68, 68, 0.12) !important; border-left: 4px solid #ef4444; }
+
+    .item-key { font-weight: 600; color: var(--text-main); text-transform: capitalize; }
+    .item-value { font-weight: 700; font-family: 'JetBrains Mono', monospace; font-size: 15px; color: #ffffff; }
+    .snippet-box { font-size: 12px; color: var(--text-muted); background: var(--bg-main); padding: 6px 12px; border-radius: 6px; max-width: 280px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; border: 1px solid var(--border-color); }
+
+    .flag-list { display: flex; flex-direction: column; gap: 12px; }
+    .flag-item { display: flex; align-items: center; gap: 14px; padding: 14px 18px; border-radius: 10px; font-size: 14px; font-weight: 500; }
+    .flag-high { background: var(--danger-bg); color: var(--danger-text); border: 1px solid rgba(239, 68, 68, 0.3); }
+    .flag-medium { background: var(--warning-bg); color: var(--warning-text); border: 1px solid rgba(245, 158, 11, 0.3); }
+    .severity-pill { font-size: 11px; font-weight: 800; text-transform: uppercase; padding: 3px 8px; border-radius: 6px; background: rgba(0, 0, 0, 0.3); }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script>
+    const e = React.createElement;
+    const { useState, useRef } = React;
+    const API_BASE = "http://127.0.0.1:5000";
+
+    function App() {
+      const [file, setFile] = useState(null);
+      const [result, setResult] = useState(null);
+      const [error, setError] = useState(null);
+      const [loading, setLoading] = useState(false);
+      const [jobStatus, setJobStatus] = useState("");
+      const fileInputRef = useRef(null);
+
+      async function pollJobStatus(jobId) {
+        const startTime = Date.now();
+        while (Date.now() - startTime < 60000) {
+          try {
+            const res = await fetch(`${API_BASE}/api/jobs/${jobId}`);
+            const data = await res.json();
+            if (data.status === "completed") {
+              setResult(data.result);
+              setJobStatus("Extraction & Audit Completed!");
+              setLoading(false);
+              return;
+            } else if (data.status === "failed") {
+              setError(data.error || "Job processing failed");
+              setLoading(false);
+              return;
+            } else {
+              setJobStatus(`Background Processing... (${data.status})`);
+            }
+          } catch (err) {
+            console.error("Polling error:", err);
+          }
+          await new Promise((r) => setTimeout(r, 1000));
+        }
+        setError("Job polling timed out.");
+        setLoading(false);
+      }
+
+      async function handleSubmit(evt) {
+        evt.preventDefault();
+        if (!file) return;
+
+        setLoading(true);
+        setError(null);
+        setResult(null);
+        setJobStatus("Submitting document to async queue...");
+
+        const formData = new FormData();
+        formData.append("file", file);
+
+        try {
+          const res = await fetch(`${API_BASE}/api/jobs`, { method: "POST", body: formData });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.error || "Submission failed");
+
+          if (data.cached && data.extraction) {
+            setResult({ extraction: data.extraction, flags: data.flags });
+            setJobStatus("Loaded instant SHA-256 cached result ⚡");
+            setLoading(false);
+          } else if (data.job_id) {
+            setJobStatus(`Job ${data.job_id.substring(0, 8)}... queued`);
+            await pollJobStatus(data.job_id);
+          }
+        } catch (err) {
+          setError(err.message);
+          setLoading(false);
+        }
+      }
+
+      const getOverallConfidence = (flags = []) => {
+        const highCount = flags.filter((f) => f.severity === "high").length;
+        const medCount = flags.filter((f) => f.severity === "medium").length;
+
+        if (highCount > 0) {
+          return { status: "high-risk", label: "High Risk / Discrepancy Flagged", class: "confidence-red" };
+        }
+        if (medCount > 0) {
+          return { status: "medium-risk", label: "Medium Confidence", class: "confidence-yellow" };
+        }
+        return { status: "clean", label: "High Confidence (Sanity Clean)", class: "confidence-green" };
+      };
+
+      const flaggedFields = new Set();
+      (result?.flags || []).forEach((f) => {
+        if (f.check === "low_confidence_extraction") {
+          const field = f.message.split("'")[1];
+          if (field) flaggedFields.add(field);
+        } else if (f.check === "balance_sheet_balances") {
+          flaggedFields.add("total_assets");
+          flaggedFields.add("total_liabilities");
+          flaggedFields.add("total_equity");
+        } else if (f.check === "ebitda_exceeds_revenue") {
+          flaggedFields.add("ebitda");
+          flaggedFields.add("total_revenue");
+        }
+      });
+
+      const confidenceBadge = result ? getOverallConfidence(result.flags) : null;
+
+      return e("div", { className: "container" },
+        e("div", { className: "header" },
+          e("div", { className: "badge-pill" }, "⚡ FinExtract Autonomous Guardrail Agent"),
+          e("h1", { className: "title" }, "Financial Statement Extraction"),
+          e("p", { className: "subtitle" }, "Extract line items, audit mathematical balance sheets, and catch unit discrepancies in seconds.")
+        ),
+
+        e("div", { className: "card" },
+          e("form", { onSubmit: handleSubmit },
+            e("input", {
+              type: "file",
+              ref: fileInputRef,
+              className: "hidden-input",
+              accept: ".pdf,.xlsx,.xlsm",
+              onChange: (evt) => setFile(evt.target.files[0])
+            }),
+            e("div", { className: "dropzone", onClick: () => fileInputRef.current?.click() },
+              e("div", { className: "dropzone-icon" }, "📄"),
+              file
+                ? e("div", { className: "file-info" }, e("span", null, "Selected:"), " ", file.name)
+                : e("div", null,
+                    e("div", { className: "dropzone-text" }, "Click to browse or drop your financial statement here"),
+                    e("div", { className: "dropzone-hint" }, "Supports PDF balance sheets, P&L extracts, or Excel financial statement sheets")
+                  )
+            ),
+            e("button", { type: "submit", className: "btn-primary", disabled: !file || loading },
+              loading ? "Processing Document..." : "Analyze Financial Document"
+            )
+          ),
+          loading && jobStatus && e("div", { className: "job-status-banner" }, `⏳ ${jobStatus}`),
+          error && e("p", { style: { color: "var(--danger-text)", marginTop: "16px", fontSize: "14px", textAlign: "center" } }, `⚠️ ${error}`)
+        ),
+
+        result && e("div", { className: "results-grid" },
+          e("div", { className: "card" },
+            e("div", { className: "card-header" },
+              e("div", null,
+                e("span", { className: "card-title" }, "Statement Period:"),
+                e("span", { className: "period-tag" }, result.extraction?.period_label || "FY/Quarter")
+              ),
+              confidenceBadge && e("div", { className: `confidence-badge ${confidenceBadge.class}` },
+                e("span", null, "●"), " ", confidenceBadge.label
+              )
+            ),
+
+            e("table", { className: "data-table" },
+              e("thead", null,
+                e("tr", null,
+                  e("th", null, "Financial Line Item"),
+                  e("th", null, "Extracted Value"),
+                  e("th", null, "LLM Confidence"),
+                  e("th", null, "Source Text Snippet")
+                )
+              ),
+              e("tbody", null,
+                result.extraction?.line_items && Object.entries(result.extraction.line_items).map(([key, item]) => {
+                  const isFlagged = flaggedFields.has(key);
+                  const formattedValue = item.value !== null && item.value !== undefined ? Number(item.value).toLocaleString() : "—";
+                  return e("tr", { key: key, className: isFlagged ? "row-flagged" : "" },
+                    e("td", { className: "item-key" }, key.replace(/_/g, " ")),
+                    e("td", { className: "item-value" }, formattedValue),
+                    e("td", null,
+                      e("span", {
+                        style: {
+                          color: item.confidence > 0.8 ? "var(--success-text)" : item.confidence > 0.5 ? "var(--warning-text)" : "var(--danger-text)",
+                          fontWeight: 700
+                        }
+                      }, `${(item.confidence * 100).toFixed(0)}%`)
+                    ),
+                    e("td", null, e("span", { className: "snippet-box", title: item.source_snippet }, item.source_snippet || "N/A"))
+                  );
+                })
+              )
+            )
+          ),
+
+          e("div", { className: "card" },
+            e("div", { className: "card-header" },
+              e("span", { className: "card-title" }, `Sanity & Guardrail Audit Flags (${result.flags?.length || 0})`)
+            ),
+            result.flags?.length === 0
+              ? e("p", { style: { color: "var(--success-text)", fontSize: "14px", fontWeight: 600 } }, "✅ All mathematical & sanity guardrails passed cleanly.")
+              : e("div", { className: "flag-list" },
+                  result.flags?.map((f, idx) =>
+                    e("div", { key: idx, className: `flag-item ${f.severity === "high" ? "flag-high" : "flag-medium"}` },
+                      e("span", { className: "severity-pill" }, f.severity),
+                      e("div", null, f.message)
+                    )
+                  )
+                )
+          )
+        )
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById("root"));
+    root.render(e(App));
+  </script>
+</body>
 </html>

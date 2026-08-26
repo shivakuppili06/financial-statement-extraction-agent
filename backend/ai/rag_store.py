@@ -25,7 +25,8 @@ class FinancialRAGStore:
         self.chroma_client = None
         self.collection = None
 
-        if HAS_CHROMADB:
+    def _ensure_chroma_initialized(self):
+        if HAS_CHROMADB and self.chroma_client is None:
             try:
                 self.chroma_client = chromadb.Client(Settings(anonymized_telemetry=False))
                 self.collection = self.chroma_client.get_or_create_collection(name=self.collection_name)
@@ -58,6 +59,7 @@ class FinancialRAGStore:
         if not chunks:
             return 0
 
+        self._ensure_chroma_initialized()
         if HAS_CHROMADB and self.collection:
             ids = [f"{doc_id}_chunk_{i}" for i in range(len(chunks))]
             metadatas = [{"doc_id": doc_id, "chunk_index": i} for i in range(len(chunks))]
@@ -79,6 +81,7 @@ class FinancialRAGStore:
         if not chunks:
             return ""
 
+        self._ensure_chroma_initialized()
         if HAS_CHROMADB and self.collection:
             try:
                 results = self.collection.query(

@@ -15,12 +15,14 @@ An enterprise autonomous LLM financial analysis suite built with **.NET Core** (
 ## 💻 Tech Stack & Ecosystem Architecture
 
 - **⚡ .NET Core (`dotnet-backend/`):** Enterprise API gateway, authentication, data persistence, and orchestration layer (.NET 8 Web API).
-- **🐍 Python (`backend/`):** AI / LLM extraction service using Google Gemini (`gemini-flash-latest`), document parsing (`pdfplumber`, `openpyxl`), and 5-layer mathematical guardrail suite.
+- **⚡ .NET Core (`dotnet-backend/`):** Enterprise API gateway, authentication, data persistence, and orchestration layer (.NET 8 Web API).
+- **🐍 Python (`backend/`):** AI / LLM extraction microservice using Google Gemini (`gemini-flash-latest`), document parsing (`pdfplumber`, `openpyxl`), and 5-layer mathematical guardrail suite.
+- **🔄 Async Queue & Resiliency:** Redis Queue (RQ) background job queue, SHA-256 idempotency cache, Gemini API sliding-window rate limiter with 429 backoff retries, circuit breaker state machine, and JSON observability metrics.
 - **⚛️ React (`frontend/`):** Interactive web dashboard (Vite + React) for visual statement inspection, risk scoring badges, and mathematical audit table highlighting.
 - **📱 Ionic (`mobile/`):** Cross-platform mobile audit application (Ionic + React + Capacitor) for mobile financial field audits and document capturing.
 - **🔍 Vector DB & RAG Strategy:** **Azure AI Search** & **ChromaDB** vector stores indexing chunked 10-K/10-Q financial reports for similarity search and recency-weighted retrieval.
 - **☁️ Azure Cloud Infrastructure:** Hosted on **Azure Container Apps** with **Azure Blob Storage** for raw statement PDF/Excel document archives and secret management via **Azure Key Vault**.
-- **📊 Logging & Observability:** Telemetry, distributed request tracing, and guardrail audit logging via **Azure Application Insights** and **OpenTelemetry**.
+- **📊 Logging & Observability:** Telemetry, distributed request tracing, and guardrail audit logging via **Azure Application Insights**, **OpenTelemetry**, and custom `/metrics` JSON endpoint.
 
 ---
 
@@ -28,6 +30,11 @@ An enterprise autonomous LLM financial analysis suite built with **.NET Core** (
 
 - **Document Processing Pipeline:** Extracts raw text & table grids from PDF balance sheets/P&L extracts (`pdfplumber`) and multi-sheet Excel files (`openpyxl`).
 - **Auditable LLM Extraction (`backend/agent.py`):** Uses Google Gemini (`gemini-flash-latest`) to output structured line items along with field-level confidence scores ($0-100\%$) and exact source quote snippets.
+- **Async Job Queue (`backend/jobs.py`):** Moves PDF extraction off HTTP request threads into an asynchronous Redis Queue (RQ) worker with status polling (`GET /api/jobs/<job_id>`) and webhook callback notifications.
+- **SHA-256 Idempotency (`backend/idempotency.py`):** Hashes uploaded documents to cache extraction results, returning cached responses in <10ms for duplicate uploads without invoking Gemini API calls.
+- **Gemini API Rate Limiting & Backoff (`backend/rate_limiter.py`):** Redis-backed sliding window rate limiter with automated exponential backoff on HTTP 429 / `ResourceExhausted` quota limits.
+- **Circuit Breaker Resiliency (`backend/circuit_breaker.py`):** Implements a 3-state machine (`CLOSED`, `OPEN`, `HALF_OPEN`) that trips on 5 consecutive failures in 60s, fast-failing during cooldown periods to prevent downstream failure cascades.
+- **Observability Metrics Endpoint (`/metrics`):** Exposes real-time operational statistics (`jobs_processed`, `jobs_in_queue`, `average_extraction_latency_seconds`, `gemini_api_error_rate`, `cache_hit_rate`).
 - **5-Layer Guardrail Suite (`backend/guardrails.py`):**
   1. `balance_sheet_balances`: Mathematical check confirming $\text{Assets} \approx \text{Liabilities} + \text{Equity}$ (2% tolerance).
   2. `ebitda_exceeds_revenue`: Ensures $\text{EBITDA} \le \text{Total Revenue}$.
@@ -43,43 +50,79 @@ An enterprise autonomous LLM financial analysis suite built with **.NET Core** (
 
 ```text
 fin-extract-agent/
-├── backend/                  # Python AI & Guardrail Microservice
-│   ├── agent.py              # Gemini API wrapper with JSON extraction prompt
-│   ├── app.py                # Flask API (POST /api/analyze, GET /api/health)
-│   ├── extractor.py          # PDF & Excel document text/table parser
-│   ├── guardrails.py         # 5-layer mathematical and sanity audit checks
-│   └── requirements.txt      # Python dependencies
-├── dotnet-backend/           # .NET Core Enterprise Gateway & API
-│   ├── Controllers/          # API Controllers
-│   ├── Models/               # Data Transfer Objects & Domain Models
-│   ├── Program.cs            # .NET 8 Web API entry point
-│   └── dotnet-backend.csproj # .NET Core project file
-├── frontend/                 # React Web Audit Dashboard
-│   ├── index.html            # HTML shell with Google Fonts
-│   ├── package.json          # Vite + React dependencies
-│   └── src/
-│       ├── App.jsx           # Main React dashboard & risk badge logic
-│       ├── index.css         # CSS design system (Dark slate theme)
-│       └── main.jsx          # React entry point
-├── mobile/                   # Ionic Cross-Platform Mobile App
-│   ├── package.json          # Ionic + React dependencies
-│   └── src/
-│       ├── App.tsx           # Ionic React entry point & UI shell
-│       └── main.tsx          # App initialization
-├── FINDINGS.md               # Stress testing log, failure modes & roadmap
-└── README.md                 # Project documentation
+│
+├── backend/                    # Python AI & processing service
+│   ├── api/                   # REST API
+│   │   └── app.py
+│   ├── ai/                    # LLM & RAG
+│   │   ├── agent.py
+│   │   └── rag_store.py
+│   ├── processing/            # Document extraction & validation
+│   │   ├── extractor.py
+│   │   ├── guardrails.py
+│   │   └── jobs.py
+│   ├── resilience/            # Reliability & fault tolerance
+│   │   ├── circuit_breaker.py
+│   │   ├── rate_limiter.py
+│   │   ├── idempotency.py
+│   │   └── redis_client.py
+│   ├── observability/         # Metrics & telemetry
+│   │   ├── metrics.py
+│   │   └── telemetry.py
+│   ├── worker.py              # Background worker
+│   ├── test_system.py         # Backend system tests
+│   └── requirements.txt
+│
+├── dotnet-backend/             # .NET 8 Enterprise API Gateway
+│   ├── Controllers/
+│   ├── Models/
+│   ├── Program.cs
+│   └── dotnet-backend.csproj
+│
+├── frontend/                   # React + Vite Web Dashboard
+│   ├── src/
+│   │   ├── App.jsx
+│   │   ├── main.jsx
+│   │   └── index.css
+│   ├── index.html
+│   ├── package.json
+│   └── vite.config.js
+│
+├── mobile/                     # Ionic + Capacitor Mobile App
+│   ├── src/
+│   │   ├── App.tsx
+│   │   └── main.tsx
+│   ├── package.json
+│   └── ionic.config.json
+│
+├── tests/                      # Integration & upload tests
+│   └── test_upload.py
+│
+├── samples/                    # Sample financial documents
+│   └── broken_financial_statement.xlsx
+│
+├── docs/                       # Project documentation
+│   └── FINDINGS.md
+│
+├── README.md
+└── LICENSE
 ```
 
 ---
 
 ## 🚀 Getting Started
 
-### 1. Python Backend Setup
+### 1. Python Backend & Async Worker Setup
 ```bash
 cd backend
 pip install -r requirements.txt
 cp .env.example .env        # Add your GEMINI_API_KEY (from https://aistudio.google.com/apikey)
-python app.py                # Runs on http://127.0.0.1:5000
+
+# Start Flask API server (http://127.0.0.1:5000)
+python api/app.py
+
+# Optional: Run RQ background queue worker (if Redis is running)
+python worker.py
 ```
 
 ### 2. .NET Core Web API Setup
