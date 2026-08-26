@@ -4,8 +4,11 @@
 [![Python](https://img.shields.io/badge/Python-3.10+-3776AB?style=flat&logo=python&logoColor=white)](https://www.python.org/)
 [![Ionic](https://img.shields.io/badge/Ionic-7.0+-3880FF?style=flat&logo=ionic&logoColor=white)](https://ionicframework.com/)
 [![React](https://img.shields.io/badge/React-18.0+-61DAFB?style=flat&logo=react&logoColor=black)](https://react.dev/)
+[![Azure](https://img.shields.io/badge/Azure-Cloud-0089D6?style=flat&logo=microsoftazure&logoColor=white)](https://azure.microsoft.com/)
+[![Vector DB](https://img.shields.io/badge/Vector%20DB-Azure%20AI%20Search-0078D4?style=flat&logo=microsoft&logoColor=white)](https://azure.microsoft.com/en-us/products/ai-services/ai-search)
+[![Monitoring](https://img.shields.io/badge/Monitoring-App%20Insights-0078D4?style=flat&logo=microsoft&logoColor=white)](https://learn.microsoft.com/en-us/azure/azure-monitor/app/app-insights-overview)
 
-An enterprise autonomous LLM financial analysis suite built with **.NET Core** (Web API Gateway), **Python** (Gemini AI Extraction & Guardrail Microservice), **React** (Web Audit Dashboard), and **Ionic** (Cross-Platform Mobile App). It parses financial statement extracts (PDFs & Excel workbooks), extracts key line items into strict JSON, and executes a multi-layer guardrail suite to detect mathematical inconsistencies, unit scaling errors, and unextracted fields.
+An enterprise autonomous LLM financial analysis suite built with **.NET Core** (Web API Gateway), **Python** (Gemini AI Extraction & Guardrail Microservice), **React** (Web Audit Dashboard), and **Ionic** (Cross-Platform Mobile App), backed by **Azure Cloud Services**, **Azure AI Search (Vector DB / RAG)**, and **Azure Application Insights**.
 
 ---
 
@@ -15,6 +18,9 @@ An enterprise autonomous LLM financial analysis suite built with **.NET Core** (
 - **🐍 Python (`backend/`):** AI / LLM extraction service using Google Gemini (`gemini-flash-latest`), document parsing (`pdfplumber`, `openpyxl`), and 5-layer mathematical guardrail suite.
 - **⚛️ React (`frontend/`):** Interactive web dashboard (Vite + React) for visual statement inspection, risk scoring badges, and mathematical audit table highlighting.
 - **📱 Ionic (`mobile/`):** Cross-platform mobile audit application (Ionic + React + Capacitor) for mobile financial field audits and document capturing.
+- **🔍 Vector DB & RAG Strategy:** **Azure AI Search** & **ChromaDB** vector stores indexing chunked 10-K/10-Q financial reports for similarity search and recency-weighted retrieval.
+- **☁️ Azure Cloud Infrastructure:** Hosted on **Azure Container Apps** with **Azure Blob Storage** for raw statement PDF/Excel document archives and secret management via **Azure Key Vault**.
+- **📊 Logging & Observability:** Telemetry, distributed request tracing, and guardrail audit logging via **Azure Application Insights** and **OpenTelemetry**.
 
 ---
 
@@ -118,5 +124,5 @@ npm run dev                  # Runs on http://localhost:8100
 * **Unextracted / Scanned PDFs:** `extraction_incomplete` guardrail immediately caught unread text layers, changing badge to `High Risk / Discrepancy Flagged` (Red).
 * **Documented Limitations (Production Roadmap):**
   - *Scanned PDFs:* Requires OCR engine (`pytesseract` + `pdf2image`).
-  - *Large Annual Reports ($>60\text{k}$ chars):* Needs section chunking and recency-weighted merging.
+  - *Large Annual Reports ($>60\text{k}$ chars):* Needs section chunking, vector indexing (Azure AI Search / ChromaDB), and recency-weighted merging.
   - *Complex Merged Tables:* Requires `Camelot`/`Tabula` or vision-capable LLM parsing.

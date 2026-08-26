@@ -1,18 +1,17 @@
 """
 agent.py
-Sends the raw extracted text to Gemini and asks for a STRICT JSON schema
-of financial line items. This is the core "AI agent" of the project.
-
-Design note: we ask the model to also return a `confidence` per field and
-a `source_snippet` it based the number on — this is what makes the output
-auditable instead of a black box. A banker needs to know WHERE a number
-came from, not just what it is.
+Sends extracted text to Gemini and asks for a STRICT JSON schema
+of financial line items. Uses RAG vector indexing for large documents
+and emits telemetry to Azure Application Insights.
 """
 
 import os
 import json
+import uuid
 import google.generativeai as genai
 from dotenv import load_dotenv
+from rag_store import rag_store
+from telemetry import app_logger
 
 load_dotenv()
 genai.configure(api_key=os.environ.get("GEMINI_API_KEY"))
@@ -57,26 +56,32 @@ RAW DOCUMENT TEXT:
 
 
 def extract_financials(document_text: str) -> dict:
-    # Gemini has a context window but not an infinite one — truncate
-    # defensively for very large annual reports. TODO: chunk + merge
-    # instead of truncating (see README).
-    truncated = document_text[:60000]
+    doc_id = str(uuid.uuid4())[:8]
+    app_logger.info(f"Processing document extraction (ID: {doc_id}) with length {len(document_text)} characters.")
+
+    # RAG Vector indexing step for large reports (>30k characters)
+    if len(document_text) > 30000:
+        app_logger.info(f"Document {doc_id} exceeds 30k chars. Indexing in RAG vector store.")
+        rag_store.index_document(doc_id, document_text)
+        query = "revenue expenses ebitda net income assets liabilities equity balance sheet income statement"
+        context_text = rag_store.retrieve_relevant_context(query, document_text, top_k=6)
+    else:
+        context_text = document_text[:60000]
 
     model = genai.GenerativeModel(MODEL_NAME)
-    prompt = EXTRACTION_PROMPT.replace("{document_text}", truncated)
+    prompt = EXTRACTION_PROMPT.replace("{document_text}", context_text)
 
     response = model.generate_content(prompt)
     raw = response.text.strip()
 
-    # Models sometimes wrap JSON in ```json fences despite instructions.
     if raw.startswith("```"):
         raw = raw.strip("`")
         raw = raw.replace("json\n", "", 1)
 
     try:
-        return json.loads(raw)
+        data = json.loads(raw)
+        app_logger.info(f"Extraction successful for doc {doc_id}. Period label: {data.get('period_label')}")
+        return data
     except json.JSONDecodeError as e:
-        # Don't silently fail — surface the raw model output so you can
-        # debug prompt issues. This IS the kind of failure mode worth
-        # writing up in your README.
+        app_logger.error(f"Extraction failed for doc {doc_id}. Invalid JSON from LLM: {e}")
         raise ValueError(f"Model did not return valid JSON: {e}\nRaw output:\n{raw}")
