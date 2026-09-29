@@ -1,0 +1,182 @@
+[
+    {
+        "file": "clean_0.xlsx",
+        "type": "clean",
+        "Revenue": 1000,
+        "EBITDA": 200,
+        "Total Assets": 500,
+        "Total Liabilities": 200,
+        "Equity": 300
+    },
+    {
+        "file": "clean_1.xlsx",
+        "type": "clean",
+        "Revenue": 1000,
+        "EBITDA": 200,
+        "Total Assets": 500,
+        "Total Liabilities": 200,
+        "Equity": 300
+    },
+    {
+        "file": "clean_2.xlsx",
+        "type": "clean",
+        "Revenue": 1000,
+        "EBITDA": 200,
+        "Total Assets": 500,
+        "Total Liabilities": 200,
+        "Equity": 300
+    },
+    {
+        "file": "clean_3.xlsx",
+        "type": "clean",
+        "Revenue": 1000,
+        "EBITDA": 200,
+        "Total Assets": 500,
+        "Total Liabilities": 200,
+        "Equity": 300
+    },
+    {
+        "file": "clean_4.xlsx",
+        "type": "clean",
+        "Revenue": 1000,
+        "EBITDA": 200,
+        "Total Assets": 500,
+        "Total Liabilities": 200,
+        "Equity": 300
+    },
+    {
+        "file": "clean_5.xlsx",
+        "type": "clean",
+        "Revenue": 1000,
+        "EBITDA": 200,
+        "Total Assets": 500,
+        "Total Liabilities": 200,
+        "Equity": 300
+    },
+    {
+        "file": "clean_6.xlsx",
+        "type": "clean",
+        "Revenue": 1000,
+        "EBITDA": 200,
+        "Total Assets": 500,
+        "Total Liabilities": 200,
+        "Equity": 300
+    },
+    {
+        "file": "clean_7.xlsx",
+        "type": "clean",
+        "Revenue": 1000,
+        "EBITDA": 200,
+        "Total Assets": 500,
+        "Total Liabilities": 200,
+        "Equity": 300
+    },
+    {
+        "file": "broken_bs_0.xlsx",
+        "type": "broken_bs",
+        "Revenue": 1000,
+        "EBITDA": 200,
+        "Total Assets": 1500,
+        "Total Liabilities": 200,
+        "Equity": 300
+    },
+    {
+        "file": "broken_bs_1.xlsx",
+        "type": "broken_bs",
+        "Revenue": 1000,
+        "EBITDA": 200,
+        "Total Assets": 1500,
+        "Total Liabilities": 200,
+        "Equity": 300
+    },
+    {
+        "file": "broken_bs_2.xlsx",
+        "type": "broken_bs",
+        "Revenue": 1000,
+        "EBITDA": 200,
+        "Total Assets": 1500,
+        "Total Liabilities": 200,
+        "Equity": 300
+    },
+    {
+        "file": "broken_bs_3.xlsx",
+        "type": "broken_bs",
+        "Revenue": 1000,
+        "EBITDA": 200,
+        "Total Assets": 1500,
+        "Total Liabilities": 200,
+        "Equity": 300
+    },
+    {
+        "file": "unit_error_0.xlsx",
+        "type": "unit_error",
+        "Revenue": 100000,
+        "EBITDA": 2000,
+        "Total Assets": 500,
+        "Total Liabilities": 200,
+        "Equity": 300
+    },
+    {
+        "file": "unit_error_1.xlsx",
+        "type": "unit_error",
+        "Revenue": 100000,
+        "EBITDA": 2000,
+        "Total Assets": 500,
+        "Total Liabilities": 200,
+        "Equity": 300
+    },
+    {
+        "file": "unit_error_2.xlsx",
+        "type": "unit_error",
+        "Revenue": 100000,
+        "EBITDA": 2000,
+        "Total Assets": 500,
+        "Total Liabilities": 200,
+        "Equity": 300
+    },
+    {
+        "file": "missing_0.xlsx",
+        "type": "missing",
+        "Revenue": 1000,
+        "EBITDA": null,
+        "Total Assets": 500,
+        "Total Liabilities": 200,
+        "Equity": null
+    },
+    {
+        "file": "missing_1.xlsx",
+        "type": "missing",
+        "Revenue": 1000,
+        "EBITDA": null,
+        "Total Assets": 500,
+        "Total Liabilities": 200,
+        "Equity": null
+    },
+    {
+        "file": "missing_2.xlsx",
+        "type": "missing",
+        "Revenue": 1000,
+        "EBITDA": null,
+        "Total Assets": 500,
+        "Total Liabilities": 200,
+        "Equity": null
+    },
+    {
+        "file": "ebitda_error_0.xlsx",
+        "type": "ebitda_error",
+        "Revenue": 1000,
+        "EBITDA": 1200,
+        "Total Assets": 500,
+        "Total Liabilities": 200,
+        "Equity": 300
+    },
+    {
+        "file": "ebitda_error_1.xlsx",
+        "type": "ebitda_error",
+        "Revenue": 1000,
+        "EBITDA": 1200,
+        "Total Assets": 500,
+        "Total Liabilities": 200,
+        "Equity": 300
+    }
+]
