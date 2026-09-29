@@ -8,7 +8,39 @@ export default function App() {
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
   const [jobStatus, setJobStatus] = useState("");
+  const [auditLog, setAuditLog] = useState([]);
+  const [fieldCorrections, setFieldCorrections] = useState({});
   const fileInputRef = useRef(null);
+
+  const handleCorrection = (key, value) => {
+    setFieldCorrections(prev => ({ ...prev, [key]: value }));
+    setAuditLog(prev => [...prev, { timestamp: new Date().toISOString(), action: "CORRECT", field: key, value }]);
+  };
+
+  const handleApprove = (key) => {
+    setAuditLog(prev => [...prev, { timestamp: new Date().toISOString(), action: "APPROVE", field: key }]);
+  };
+
+  const handleReject = (key) => {
+    setAuditLog(prev => [...prev, { timestamp: new Date().toISOString(), action: "REJECT", field: key }]);
+  };
+
+  const exportCSV = () => {
+    if (!result?.extraction?.line_items) return;
+    const rows = [["Field", "Original Value", "Corrected Value", "Confidence", "Status"]];
+    Object.entries(result.extraction.line_items).forEach(([key, item]) => {
+      const corrected = fieldCorrections[key];
+      const status = auditLog.slice().reverse().find(log => log.field === key)?.action || "PENDING";
+      rows.push([key, item.value, corrected || item.value, item.confidence, status]);
+    });
+    const csv = rows.map(r => r.join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "powerbi_export.csv";
+    a.click();
+  };
 
   async function pollJobStatus(jobId) {
     const startTime = Date.now();
@@ -163,6 +195,12 @@ export default function App() {
                 </div>
               )}
             </div>
+            
+            <div style={{ padding: "0 20px 20px", display: "flex", gap: "10px" }}>
+              <button onClick={exportCSV} className="btn-secondary" style={{ padding: "8px 16px", borderRadius: "6px", background: "var(--bg-secondary)", border: "1px solid var(--border-color)", cursor: "pointer", color: "white" }}>
+                📊 Export PowerBI CSV
+              </button>
+            </div>
 
             <table className="data-table">
               <thead>
@@ -171,15 +209,19 @@ export default function App() {
                   <th>Extracted Value</th>
                   <th>LLM Confidence</th>
                   <th>Source Text Snippet</th>
+                  <th>Human Review</th>
                 </tr>
               </thead>
               <tbody>
                 {result.extraction?.line_items && Object.entries(result.extraction.line_items).map(([key, item]) => {
                   const isFlagged = flaggedFields.has(key);
+                  const currentValue = fieldCorrections[key] !== undefined ? fieldCorrections[key] : item.value;
                   const formattedValue =
-                    item.value !== null && item.value !== undefined
-                      ? Number(item.value).toLocaleString()
+                    currentValue !== null && currentValue !== undefined
+                      ? Number(currentValue).toLocaleString()
                       : "—";
+                  
+                  const latestAction = auditLog.slice().reverse().find(log => log.field === key)?.action;
 
                   return (
                     <tr key={key} className={isFlagged ? "row-flagged" : ""}>
@@ -204,6 +246,26 @@ export default function App() {
                         <span className="snippet-box" title={item.source_snippet}>
                           {item.source_snippet || "N/A"}
                         </span>
+                      </td>
+                      <td>
+                        <div style={{ display: "flex", gap: "4px", flexDirection: "column" }}>
+                          {latestAction === "APPROVE" ? (
+                            <span style={{ color: "var(--success-text)", fontSize: "12px" }}>✅ Approved</span>
+                          ) : latestAction === "REJECT" ? (
+                            <span style={{ color: "var(--danger-text)", fontSize: "12px" }}>❌ Rejected</span>
+                          ) : (
+                            <div style={{ display: "flex", gap: "4px" }}>
+                              <button onClick={() => handleApprove(key)} style={{ padding: "2px 6px", fontSize: "12px", background: "transparent", border: "1px solid var(--success-text)", color: "var(--success-text)", borderRadius: "4px", cursor: "pointer" }}>Approve</button>
+                              <button onClick={() => handleReject(key)} style={{ padding: "2px 6px", fontSize: "12px", background: "transparent", border: "1px solid var(--danger-text)", color: "var(--danger-text)", borderRadius: "4px", cursor: "pointer" }}>Reject</button>
+                            </div>
+                          )}
+                          <input 
+                            type="number" 
+                            placeholder="Correct..." 
+                            onBlur={(e) => e.target.value && handleCorrection(key, e.target.value)}
+                            style={{ padding: "2px", fontSize: "12px", width: "80px", background: "transparent", border: "1px solid var(--border-color)", color: "white" }} 
+                          />
+                        </div>
                       </td>
                     </tr>
                   );

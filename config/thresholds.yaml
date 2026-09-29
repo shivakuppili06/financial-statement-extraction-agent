@@ -1,0 +1,18 @@
+guardrails:
+  balance_sheet_tolerance_percent: 2.0
+  outlier_yoy_threshold_percent: 30.0
+ratios:
+  current_ratio:
+    min: 1.0
+    max: 3.0
+  debt_to_equity:
+    min: 0.0
+    max: 2.0
+  interest_coverage:
+    min: 1.5
+    max: 10.0
+  roe:
+    min: 5.0
+    max: 30.0
+fraud_signals:
+  benford_strictness: "medium"

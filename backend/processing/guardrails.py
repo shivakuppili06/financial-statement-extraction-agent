@@ -8,6 +8,16 @@ Each check below returns a flag dict if something looks off.
 Start with these three, then add more (see README "Ideas to extend").
 """
 
+import os
+import sys
+
+# Optional integration with ratio module
+try:
+    from processing.ratios import calculate_and_check_ratios
+except ImportError:
+    # Handle if run outside package
+    def calculate_and_check_ratios(line_items): return []
+
 TOLERANCE = 0.02  # 2% slack for rounding in reported financials
 
 
@@ -118,6 +128,49 @@ def check_source_snippet_consistency(line_items: dict) -> list[dict]:
     return flags
 
 
+def check_retained_earnings_consistency(line_items: dict) -> dict | None:
+    """Net income should roughly equal the change in retained earnings (minus dividends, which we might ignore here)."""
+    net_income = _val(line_items, "net_income")
+    re_start = _val(line_items, "retained_earnings_start")
+    re_end = _val(line_items, "retained_earnings_end")
+    if None not in (net_income, re_start, re_end):
+        expected_change = net_income
+        actual_change = re_end - re_start
+        diff_pct = abs(expected_change - actual_change) / max(abs(expected_change), 1)
+        if diff_pct > 0.1: # Allow larger tolerance for dividends
+            return {
+                "check": "retained_earnings_consistency",
+                "severity": "medium",
+                "message": f"Net Income ({net_income:,.0f}) does not match Retained Earnings change ({actual_change:,.0f}). Check for dividends or errors."
+            }
+    return None
+
+def check_cash_flow_balance(line_items: dict) -> dict | None:
+    """Ending cash from CF statement should equal cash on Balance Sheet."""
+    cf_cash = _val(line_items, "cash_end_cf")
+    bs_cash = _val(line_items, "cash_and_equivalents")
+    if None not in (cf_cash, bs_cash):
+        if cf_cash != bs_cash:
+            return {
+                "check": "cash_flow_consistency",
+                "severity": "high",
+                "message": f"CF Ending Cash ({cf_cash:,.0f}) != BS Cash ({bs_cash:,.0f})."
+            }
+    return None
+
+def check_debt_interest_consistency(line_items: dict) -> dict | None:
+    """Interest expense should be > 0 if total debt > 0."""
+    debt = _val(line_items, "total_debt")
+    interest = _val(line_items, "interest_expense")
+    if None not in (debt, interest):
+        if debt > 0 and interest == 0:
+            return {
+                "check": "debt_interest_consistency",
+                "severity": "medium",
+                "message": "Company reports debt but zero interest expense."
+            }
+    return None
+
 def check_extraction_completeness(line_items: dict) -> dict | None:
     """If most fields failed to extract, don't let the system claim 'clean'."""
     total = len(line_items)
@@ -137,7 +190,14 @@ def run_all_checks(extraction_result: dict) -> list[dict]:
     line_items = extraction_result.get("line_items", {})
     flags = []
 
-    for check_fn in (check_balance_sheet_balances, check_ebitda_consistency, check_extraction_completeness):
+    for check_fn in (
+        check_balance_sheet_balances, 
+        check_ebitda_consistency, 
+        check_extraction_completeness,
+        check_retained_earnings_consistency,
+        check_cash_flow_balance,
+        check_debt_interest_consistency
+    ):
         result = check_fn(line_items)
         if result:
             flags.append(result)
@@ -145,4 +205,5 @@ def run_all_checks(extraction_result: dict) -> list[dict]:
     flags.extend(check_low_confidence_fields(line_items))
     flags.extend(check_unit_currency_anomaly(line_items))
     flags.extend(check_source_snippet_consistency(line_items))
+    flags.extend(calculate_and_check_ratios(line_items))
     return flags
